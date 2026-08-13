@@ -34,7 +34,9 @@ const auth = firebase.auth();
 const dbRef = firebase.database().ref("qaMonitorData");
 
 function saveData() {
-  dbRef.set(DATA);
+  dbRef.set(DATA).catch(err => {
+    showToast(`Save failed: ${err.message || "check Firebase database rules"}`);
+  });
 }
 
 const DATA = normalizeData({});
