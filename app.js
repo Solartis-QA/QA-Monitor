@@ -21,22 +21,47 @@ function normalizeData(raw) {
     });
     delete data.manual;
   }
+
+  // Firebase Realtime Database prunes any node that ends up with no non-empty children
+  // (e.g. { entries: [], excelSheet: null } serializes to nothing) — silently deleting a
+  // freshly-added project that has zero entries yet. Backfill defaults after every load,
+  // and keep a "name" field on each project (see getManualProject) so it always has some
+  // non-empty content and can never be pruned away just for being new/empty.
+  Object.keys(data.manualProjects).forEach(name => {
+    const p = data.manualProjects[name];
+    if (!p.entries) p.entries = [];
+    if (p.excelSheet === undefined) p.excelSheet = null;
+    if (!p.name) p.name = name;
+  });
+
   return data;
 }
 
 function getManualProject(name) {
-  if (!DATA.manualProjects[name]) DATA.manualProjects[name] = { entries: [], excelSheet: null };
+  if (!DATA.manualProjects[name]) DATA.manualProjects[name] = { name, entries: [], excelSheet: null };
   return DATA.manualProjects[name];
 }
 
 // ---- Firebase: shared data lives in Realtime Database, gated behind email/password auth ----
+// Each mutation writes only its own path (never the whole tree) so that a stale tab
+// making an unrelated change can't clobber data another tab just wrote.
 const auth = firebase.auth();
 const dbRef = firebase.database().ref("qaMonitorData");
 
-function saveData() {
-  dbRef.set(DATA).catch(err => {
-    showToast(`Save failed: ${err.message || "check Firebase database rules"}`);
-  });
+function reportSaveError(err) {
+  showToast(`Save failed: ${err.message || "check Firebase database rules"}`);
+}
+
+function saveAutomationDate(date) {
+  dbRef.child("automation").child(date).set(DATA.automation[date] || []).catch(reportSaveError);
+}
+
+function saveManualProject(name) {
+  dbRef.child("manualProjects").child(name).set(DATA.manualProjects[name]).catch(reportSaveError);
+}
+
+function removeManualProject(name) {
+  dbRef.child("manualProjects").child(name).remove().catch(reportSaveError);
 }
 
 const DATA = normalizeData({});
@@ -209,7 +234,7 @@ autoTableWrap.addEventListener("click", e => {
   if (!entry) return;
   if (!confirm(`Delete entry for ${entry.employee}?`)) return;
   rows.splice(idx, 1);
-  saveData();
+  saveAutomationDate(state.autoDate);
   renderAutomation();
   showToast(`Entry for ${entry.employee} deleted`);
 });
@@ -242,7 +267,7 @@ projectList.addEventListener("click", e => {
     const name = delBtn.dataset.project;
     if (!confirm(`Delete project "${name}" and all its entries?`)) return;
     delete DATA.manualProjects[name];
-    saveData();
+    removeManualProject(name);
     renderProjectList();
     showToast(`Project "${name}" deleted`);
     return;
@@ -299,7 +324,7 @@ manualTableWrap.addEventListener("click", e => {
   if (!entry) return;
   if (!confirm(`Delete entry for ${entry.employee}?`)) return;
   proj.entries.splice(idx, 1);
-  saveData();
+  saveManualProject(state.manualProject);
   renderManualProjectDetail();
   showToast(`Entry for ${entry.employee} deleted`);
 });
@@ -309,7 +334,7 @@ excelSheetWrap.addEventListener("click", e => {
   if (!confirm(`Remove the uploaded sheet from ${state.manualProject}?`)) return;
   const proj = getManualProject(state.manualProject);
   proj.excelSheet = null;
-  saveData();
+  saveManualProject(state.manualProject);
   renderManualProjectDetail();
   showToast("Uploaded sheet removed");
 });
@@ -346,7 +371,7 @@ excelFileInput.addEventListener("change", () => {
     const json = XLSX.utils.sheet_to_json(workbook.Sheets[REQUIRED_SHEET_NAME], { defval: "" });
     const proj = getManualProject(state.manualProject);
     proj.excelSheet = { name: REQUIRED_SHEET_NAME, rows: json };
-    saveData();
+    saveManualProject(state.manualProject);
     renderManualProjectDetail();
     showToast(`"${REQUIRED_SHEET_NAME}" uploaded (${json.length} row${json.length === 1 ? "" : "s"})`);
   };
@@ -435,12 +460,12 @@ entryForm.addEventListener("submit", e => {
     entry.project = fProject.value.trim() || "Unassigned";
     if (!DATA.automation[state.autoDate]) DATA.automation[state.autoDate] = [];
     DATA.automation[state.autoDate].push(entry);
-    saveData();
+    saveAutomationDate(state.autoDate);
     renderAutomation();
   } else if (entryContext === "manual") {
     const proj = getManualProject(state.manualProject);
     proj.entries.push(entry);
-    saveData();
+    saveManualProject(state.manualProject);
     renderManualProjectDetail();
   }
   closeEntryModal();
@@ -473,7 +498,7 @@ projectForm.addEventListener("submit", e => {
   const name = fNewProject.value.trim();
   if (!name) return;
   getManualProject(name);
-  saveData();
+  saveManualProject(name);
   renderProjectList();
   closeProjectModal();
   showToast(`Project "${name}" added`);
