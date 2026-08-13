@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>QA Monitor</title>
+<link rel="stylesheet" href="style.css?v=7" />
+</head>
+<body>
+  <div class="bg-glow"></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="12" cy="12" r="9.5" stroke="currentColor" stroke-width="2"/>
+        </svg>
+      </span>
+      <div class="brand-text">
+        <h1>QA Monitor</h1>
+        <span class="brand-sub">Real-time QA tracking</span>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <span id="liveClock" class="live-clock"></span>
+      <button id="backBtn" class="back-btn hidden">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Back
+      </button>
+    </div>
+  </header>
+
+  <main id="app">
+
+    <!-- Screen 1: Mode selection -->
+    <section id="screen-home" class="screen">
+      <p class="subtitle">Select a QA work mode</p>
+      <div class="mode-grid">
+        <button class="mode-card mode-automation" data-mode="automation">
+          <span class="mode-icon">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="12" r="4.5" stroke="currentColor" stroke-width="1.8"/></svg>
+          </span>
+          <span class="mode-title">Automation</span>
+          <span class="mode-desc">View automated QA run status by date</span>
+          <span class="mode-arrow">&rarr;</span>
+        </button>
+        <button class="mode-card mode-manual" data-mode="manual">
+          <span class="mode-icon">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M4 19.5V6a2 2 0 0 1 2-2h11a1 1 0 0 1 1 1v13" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 19.5A1.5 1.5 0 0 0 5.5 21H18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M8 7h6M8 10.5h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          </span>
+          <span class="mode-title">Manual</span>
+          <span class="mode-desc">View manual QA testing status by date &amp; project</span>
+          <span class="mode-arrow">&rarr;</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Screen 2: Automation - date picker + table -->
+    <section id="screen-automation" class="screen hidden">
+      <p class="subtitle">Automation QA Status</p>
+      <div class="controls">
+        <label class="date-field" for="autoDate">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3.5" y="5" width="17" height="16" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M8 3v4M16 3v4M3.5 9.5h17" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          <input type="date" id="autoDate" />
+        </label>
+        <button id="addAutoEntryBtn" class="add-btn">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+          Add Employee Entry
+        </button>
+      </div>
+      <div id="autoTableWrap" class="table-wrap"></div>
+    </section>
+
+    <!-- Screen 3: Manual - project list (global across all dates) -->
+    <section id="screen-manual" class="screen hidden">
+      <p class="subtitle">Manual QA Status</p>
+      <div class="controls">
+        <button id="addProjectBtn" class="add-btn">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+          Add Project
+        </button>
+      </div>
+      <div id="projectList" class="project-grid"></div>
+    </section>
+
+    <!-- Screen 4: Manual - project detail table -->
+    <section id="screen-manual-project" class="screen hidden">
+      <div class="controls">
+        <p class="subtitle no-margin"><span id="projectNameLabel"></span></p>
+        <div class="header-actions">
+          <button id="uploadExcelBtn" class="upload-btn">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 16V4M12 4l-4 4M12 4l4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Upload Excel
+          </button>
+          <input type="file" id="excelFileInput" accept=".xlsx,.xls" class="hidden" />
+          <button id="addManualEntryBtn" class="add-btn">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+            Add Employee Entry
+          </button>
+        </div>
+      </div>
+      <div id="excelSheetWrap"></div>
+      <div id="manualTableWrap" class="table-wrap"></div>
+    </section>
+
+  </main>
+
+  <!-- Modal: add employee entry -->
+  <div id="entryModalOverlay" class="modal-overlay hidden">
+    <div class="modal">
+      <h3 id="entryModalTitle">Add Employee Entry</h3>
+      <form id="entryForm">
+        <label>Employee Name
+          <input type="text" id="f-employee" required placeholder="e.g. Jane Smith" autocomplete="off" />
+        </label>
+        <label id="f-project-wrap">Project
+          <input type="text" id="f-project" placeholder="e.g. Policy Portal" autocomplete="off" />
+        </label>
+        <label>Module
+          <input type="text" id="f-module" required placeholder="e.g. Login" autocomplete="off" />
+        </label>
+        <div class="form-row">
+          <label>Start Date &amp; Time
+            <input type="datetime-local" id="f-start" required />
+          </label>
+          <label>Expected End Date &amp; Time
+            <input type="datetime-local" id="f-end" />
+          </label>
+        </div>
+        <p class="field-hint">Pending ETA is calculated automatically from Start &amp; Expected End — minutes, hours, days, weeks or months.</p>
+        <label>Status
+          <select id="f-status">
+            <option value="In Progress">In Progress</option>
+            <option value="Completed">Completed</option>
+            <option value="Blocked">Blocked</option>
+          </select>
+        </label>
+        <div class="modal-actions">
+          <button type="button" id="entryModalCancel" class="btn-secondary">Cancel</button>
+          <button type="submit" class="btn-primary">Save Entry</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: add project -->
+  <div id="projectModalOverlay" class="modal-overlay hidden">
+    <div class="modal">
+      <h3>Add Project</h3>
+      <form id="projectForm">
+        <label>Project Name
+          <input type="text" id="f-new-project" required placeholder="e.g. Underwriting Tool" autocomplete="off" />
+        </label>
+        <div class="modal-actions">
+          <button type="button" id="projectModalCancel" class="btn-secondary">Cancel</button>
+          <button type="submit" class="btn-primary">Save Project</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="app.js?v=7"></script>
+</body>
+</html>
