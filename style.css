@@ -650,6 +650,11 @@ tbody tr:hover { background: var(--panel-2); }
   color: var(--accent-2);
 }
 
+.login-error { color: var(--red); }
+.login-error::before { content: "⚠"; color: var(--red); }
+
+.logout-btn { flex-direction: row-reverse; }
+
 .form-row {
   display: flex;
   gap: 12px;

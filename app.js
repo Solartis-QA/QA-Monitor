@@ -1,12 +1,6 @@
-const STORAGE_KEY = "qaMonitorData";
-
-function loadData() {
-  let data = { automation: {}, manualProjects: {} };
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) data = JSON.parse(raw);
-  } catch (e) { /* ignore corrupt storage */ }
-
+function normalizeData(raw) {
+  const data = (raw && typeof raw === "object") ? raw : {};
+  if (!data.automation) data.automation = {};
   if (!data.manualProjects) data.manualProjects = {};
 
   // Migrate older schema where projects were nested per-date (data.manual[date][project])
@@ -35,11 +29,15 @@ function getManualProject(name) {
   return DATA.manualProjects[name];
 }
 
+// ---- Firebase: shared data lives in Realtime Database, gated behind email/password auth ----
+const auth = firebase.auth();
+const dbRef = firebase.database().ref("qaMonitorData");
+
 function saveData() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(DATA));
+  dbRef.set(DATA);
 }
 
-const DATA = loadData();
+const DATA = normalizeData({});
 
 const state = {
   screen: "home",
@@ -480,4 +478,57 @@ projectForm.addEventListener("submit", e => {
 });
 
 // ---- Init ----
-showScreen("home");
+function rerenderCurrentScreen() {
+  if (state.screen === "automation") renderAutomation();
+  else if (state.screen === "manual") renderProjectList();
+  else if (state.screen === "manualProject" && state.manualProject) renderManualProjectDetail();
+}
+
+const loginOverlay = document.getElementById("loginOverlay");
+const loginForm = document.getElementById("loginForm");
+const loginEmail = document.getElementById("loginEmail");
+const loginPassword = document.getElementById("loginPassword");
+const loginError = document.getElementById("loginError");
+const logoutBtn = document.getElementById("logoutBtn");
+const topbarEl = document.querySelector(".topbar");
+const appEl = document.getElementById("app");
+
+loginForm.addEventListener("submit", e => {
+  e.preventDefault();
+  loginError.classList.add("hidden");
+  auth.signInWithEmailAndPassword(loginEmail.value.trim(), loginPassword.value)
+    .catch(err => {
+      loginError.textContent = err.code === "auth/invalid-credential" || err.code === "auth/wrong-password" || err.code === "auth/user-not-found"
+        ? "Incorrect email or password."
+        : "Login failed — please try again.";
+      loginError.classList.remove("hidden");
+    });
+});
+
+logoutBtn.addEventListener("click", () => auth.signOut());
+
+let dbListenerAttached = false;
+
+auth.onAuthStateChanged(user => {
+  if (user) {
+    loginOverlay.classList.add("hidden");
+    topbarEl.classList.remove("hidden");
+    appEl.classList.remove("hidden");
+    showScreen("home");
+    if (!dbListenerAttached) {
+      dbListenerAttached = true;
+      dbRef.on("value", snapshot => {
+        const remote = normalizeData(snapshot.val());
+        Object.keys(DATA).forEach(k => delete DATA[k]);
+        Object.assign(DATA, remote);
+        rerenderCurrentScreen();
+      });
+    }
+  } else {
+    topbarEl.classList.add("hidden");
+    appEl.classList.add("hidden");
+    loginForm.reset();
+    loginError.classList.add("hidden");
+    loginOverlay.classList.remove("hidden");
+  }
+});

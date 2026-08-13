@@ -4,12 +4,31 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>QA Monitor</title>
-<link rel="stylesheet" href="style.css?v=7" />
+<link rel="stylesheet" href="style.css?v=8" />
 </head>
 <body>
   <div class="bg-glow"></div>
 
-  <header class="topbar">
+  <!-- Login gate -->
+  <div id="loginOverlay" class="modal-overlay">
+    <div class="modal">
+      <h3>QA Monitor Login</h3>
+      <form id="loginForm">
+        <label>Email
+          <input type="email" id="loginEmail" required placeholder="you@company.com" autocomplete="username" />
+        </label>
+        <label>Password
+          <input type="password" id="loginPassword" required placeholder="••••••••" autocomplete="current-password" />
+        </label>
+        <p id="loginError" class="field-hint login-error hidden"></p>
+        <div class="modal-actions">
+          <button type="submit" class="btn-primary">Log In</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <header class="topbar hidden">
     <div class="brand">
       <span class="brand-mark">
         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -24,6 +43,10 @@
     </div>
     <div class="topbar-right">
       <span id="liveClock" class="live-clock"></span>
+      <button id="logoutBtn" class="back-btn logout-btn" title="Log out">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15 17l5-5-5-5M20 12H9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Log out
+      </button>
       <button id="backBtn" class="back-btn hidden">
         <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         Back
@@ -31,7 +54,7 @@
     </div>
   </header>
 
-  <main id="app">
+  <main id="app" class="hidden">
 
     <!-- Screen 1: Mode selection -->
     <section id="screen-home" class="screen">
@@ -163,6 +186,10 @@
   <div id="toast" class="toast hidden"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="app.js?v=7"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="app.js?v=8"></script>
 </body>
 </html>
